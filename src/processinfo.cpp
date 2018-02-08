@@ -207,7 +207,7 @@ ProcessInfo::growStack()
     } else if ((VA)&area >= area.addr && (VA)&area < area.endAddr) {
       JTRACE("Original stack area") ((void *)area.addr) (area.size);
       stackArea = area;
-      _endOfStack = (uintptr_t) area.endAddr;
+      _endOfStack = (unsigned long) area.endAddr;
       /*
        * When using Matlab with dmtcp_launch, sometimes the bottom most
        * page of stack (the page with highest address) which contains the
