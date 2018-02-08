@@ -50,7 +50,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unistd.h>
+#include <stddef.h>
 
 #include "../membarrier.h"
 #include "config.h"
@@ -103,6 +103,7 @@ typedef struct RestoreInfo {
   VA vdsoEnd;
   VA vvarStart;
   VA vvarEnd;
+  VA endOfStack;
   fnptr_t post_restart;
   fnptr_t post_restart_debug;
   // NOTE: Update the offset when adding fields to the RestoreInfo struct
@@ -126,8 +127,8 @@ typedef struct RestoreInfo {
 static RestoreInfo rinfo;
 
 /* Internal routines */
-static void readmemoryareas(int fd);
-static int read_one_memory_area(int fd);
+static void readmemoryareas(int fd, VA endOfStack);
+static int read_one_memory_area(int fd, VA endOfStack);
 #if 0
 static void adjust_for_smaller_file_size(Area *area, int fd);
 #endif /* if 0 */
@@ -328,6 +329,7 @@ main(int argc, char *argv[], char **environ)
   rinfo.vdsoEnd = mtcpHdr.vdsoEnd;
   rinfo.vvarStart = mtcpHdr.vvarStart;
   rinfo.vvarEnd = mtcpHdr.vvarEnd;
+  rinfo.endOfStack = mtcpHdr.end_of_stack;
   rinfo.post_restart = mtcpHdr.post_restart;
   rinfo.post_restart_debug = mtcpHdr.post_restart_debug;
   rinfo.motherofall_tls_info = mtcpHdr.motherofall_tls_info;
@@ -457,9 +459,9 @@ restart_fast_path()
   // rinfo.restorememoryareas_fptr(&rinfo);
   // Intel icc-13.1.3 output uses register rbp here.  It's no longer available.
   asm volatile(
-   // 104 = offsetof(RestoreInfo, rinfo.restorememoryareas_fptr)
+   // 112 = offsetof(RestoreInfo, rinfo.restorememoryareas_fptr)
    // NOTE: Update the offset when adding fields to the RestoreInfo struct
-   "movq    104+rinfo(%%rip), %%rdx;" /* rinfo.restorememoryareas_fptr */
+   "movq    112+rinfo(%%rip), %%rdx;" /* rinfo.restorememoryareas_fptr */
    "leaq    rinfo(%%rip), %%rdi;"    /* &rinfo */
    "movl    $0, %%eax;"
    "call    *%%rdx"
@@ -569,6 +571,7 @@ mtcp_simulateread(int fd, MtcpHeader *mtcpHdr)
   mtcp_printf("**** brk (sbrk(0)): %p\n", mtcpHdr->saved_brk);
   mtcp_printf("**** vdso: %p..%p\n", mtcpHdr->vdsoStart, mtcpHdr->vdsoEnd);
   mtcp_printf("**** vvar: %p..%p\n", mtcpHdr->vvarStart, mtcpHdr->vvarEnd);
+  mtcp_printf("**** end of stack: %p\n", mtcpHdr->end_of_stack);
 
   Area area;
   mtcp_printf("\n**** Listing ckpt image area:\n");
@@ -669,10 +672,9 @@ restorememoryareas(RestoreInfo *rinfo_ptr)
    *   Similarly for vvar.
    */
   unmap_memory_areas_and_restore_vdso(&restore_info);
-
   /* Restore memory areas */
   DPRINTF("restoring memory areas\n");
-  readmemoryareas(restore_info.fd);
+  readmemoryareas(restore_info.fd, restore_info.endOfStack);
 
   /* Everything restored, close file and finish up */
 
@@ -712,8 +714,6 @@ restorememoryareas(RestoreInfo *rinfo_ptr)
       "  (gdb) p dummy = 0\n", mtcp_sys_getpid()
     );
     restore_info.post_restart_debug(readTime);
-    // int dummy = 1;
-    // while (dummy);
   } else {
     restore_info.post_restart(readTime);
   }
@@ -936,10 +936,10 @@ unmap_memory_areas_and_restore_vdso(RestoreInfo *rinfo)
  *
  **************************************************************************/
 static void
-readmemoryareas(int fd)
+readmemoryareas(int fd, VA endOfStack)
 {
   while (1) {
-    if (read_one_memory_area(fd) == -1) {
+    if (read_one_memory_area(fd, endOfStack) == -1) {
       break; /* error */
     }
   }
@@ -955,7 +955,7 @@ readmemoryareas(int fd)
 
 NO_OPTIMIZE
 static int
-read_one_memory_area(int fd)
+read_one_memory_area(int fd, VA endOfStack)
 {
   int mtcp_sys_errno;
   int imagefd;
@@ -974,6 +974,20 @@ read_one_memory_area(int fd)
       && mtcp_sys_brk(NULL) != area.addr + area.size) {
     DPRINTF("WARNING: break (%p) not equal to end of heap (%p)\n",
             mtcp_sys_brk(NULL), area.addr + area.size);
+  }
+  /* MAP_GROWSDOWN flag is required for stack region on restart to make
+   * stack grow automatically when application touches any address within the
+   * guard page region(usually, one page less then stack's start address).
+   *
+   * The end of stack is detected dynamically at checkpoint time. See
+   * prepareMtcpHeader() in threadlist.cpp and ProcessInfo::growStack()
+   * in processinfo.cpp.
+   */
+  if (area.name[0] && mtcp_strstr(area.name, "stack")
+      || (area.endAddr == endOfStack)) {
+    area.flags = area.flags | MAP_GROWSDOWN;
+    DPRINTF("Detected stack area. End of stack (%p); Area end address (%p)\n",
+            endOfStack, area.endAddr);
   }
 
   // We could have replaced MAP_SHARED with MAP_PRIVATE in writeckpt.cpp

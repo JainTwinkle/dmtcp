@@ -147,6 +147,8 @@ class ProcessInfo
 
     uint64_t vvarEnd(void) const { return _vvarEnd; }
 
+    uint64_t endOfStack(void) const { return _endOfStack; }
+
     bool vdsoOffsetMismatch(ptrdiff_t f1, ptrdiff_t f2,
                             ptrdiff_t f3, ptrdiff_t f4);
 
@@ -212,6 +214,7 @@ class ProcessInfo
     uint64_t _vdsoEnd;
     uint64_t _vvarStart;
     uint64_t _vvarEnd;
+    uint64_t _endOfStack;
 
     ptrdiff_t _clock_gettime_offset;
     ptrdiff_t _getcpu_offset;
