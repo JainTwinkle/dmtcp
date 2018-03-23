@@ -1,0 +1,116 @@
+-------------
+Configuration
+-------------
+
+* git repository url: https://github.com/Twinklejain/dmtcp.git
+* ~ git clone https://github.com/Twinklejain/dmtcp.git
+* ~ git checkout mentor_use
+
+[You should be now in dmtcp folder. So '.' in the following commands represent
+`/path_to_git_clone/dmtcp/` directory]
+
+default configuration:
+./configure [optional flags]
+
+* Some useful flags:
+--enable-timing
+This flag records checkpoint/restart timing information to jtimings.csv,
+in working directory of dmtcp_coordinator.
+
+--enable-debugging
+This flag uses debugging flags "-Wall -g3 -O0" on DMTCP libs(default: disabled)
+
+--enable-logging
+This flag enables verbose logging output and write log (default: disabled)
+
+Example usage: ./configure --enable-timing --enable-debugging --enable-logging
+
+* For all available flags use: ./configure --help
+* By default `make install` command below will install the executables in the
+  `./bin/` directory.
+* To change the path to executables,
+  use --prefix=<absolute_path_for_executables>
+* Example usage: ./configure --prefix=$HOME/dmtcp_binaries/
+
+------------
+Installation
+------------
+~ make clean
+~ make install -j
+
+[Installation should be completed by now without any error]
+
+----------
+Usage
+----------
+* All the important binaries are located at in `./bin/` directory
+* Checkpoint phase name stored in environment variable `VELSYN_CHECKPOINT`
+* As per dmtcp_integration implementation in velsyn, without this enviorment
+  variable, dmtcp checkpoint will not triggered, result in no checkpoint image.
+~ setenv VELSYN_CHECKPOINT partition
+~ echo $VELSYN_CHECKPOINT
+* NOTE: gcc and LD_LIBRARY_PATH should point to the same version i.e.
+  `/med/build/gcc/gcc-6.2.0/rhel6/` in our case.
+~ which gcc
+~ gcc --version
+~ setenv PATH /med/build/gcc/gcc-6.2.0/rhel6/bin:$PATH
+setenv LD_LIBRARY_PATH /med/build/gcc/gcc-6.2.0/rhel6/lib64:/usr/lib:/usr/lib64
+~ /path_to_dmtcp_executables/dmtcp_launch velsyn_command
+
+[After the checkpoint phase the checkpoint image should be created in the
+ current working directory(default).
+* Checkpoint image have `ckpt` prefix and a random string as `postfix` to the
+  program name.
+* If you have enabled timing, the timing file would have same random postfix
+  string as checkpoint image.
+* To resart from the last checkpoint image, use dmtcp_restart.
+Example Usage: /path_to_dmtcp_executables/dmtcp_resart <checkpoint_image_path>
+
+* Use --help flag for all flags.
+-------------
+Advance Usage
+-------------
+
+* Checkpoint and restore an application without integration in the application.
+---
+* First Way:
+---
+[Terminal 1]
+~ /path_to_dmtcp_executables/dmtcp_coordinator
+* By default the host is localhost and port is set to 7779.
+* Host and port can be specified with `-h`(short form) or `--host` flag and
+  port can be specified with `-p` or `--port` flag.
+* Example usage:
+~ /path_to_dmtcp_executables/dmtcp_coordinator -h localhost -p 7878
+
+[Terminal 2]
+~ /path_to_dmtcp_executable/dmtcp_launch -j -h localhost -p 7878 user_executable
+* if using default options, you don't need to specify the host, port and join
+* `-j` is equivalent to `--join`, [use when using other host/port than default]
+
+[Terminal 1]
+* type `h` or `help` for available options.
+* Most common commands are `c` or `checkpoint` and `l` or `list` for list of
+  the running processes under dmtcp.
+
+[Terminal 3]
+* Same commands can be given by using `dmtcp_command`
+Example Usage: /path_to_dmtcp_executables/dmtcp_command -c
+* See other available commands by using `-h` or `--help`
+
+[Terminal 2]
+For restart
+/path_to_dmtcp_executables/dmtcp_resart -j -h <hostname> -p <port_number> \
+                                        <checkpoint_image_path>
+
+---
+* Second way:
+---
+[Terminal 1]
+~ /path_to_dmtcp_executable/dmtcp_launch -j -h localhost -p 7878 user_executable
+
+[Terminal 2]
+~ /path_to_dmtcp_executable/dmtcp_command -c
+
+[Terminal 1]
+~/path_to_dmtcp_executable/dmtcp_launch -j -h localhost -p 7878 <ckpt_file>
