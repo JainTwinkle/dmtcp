@@ -50,11 +50,15 @@ Usage
 ~ setenv VELSYN_CHECKPOINT partition
 ~ echo $VELSYN_CHECKPOINT
 * NOTE: gcc and LD_LIBRARY_PATH should point to the same version i.e.
-  `/med/build/gcc/gcc-6.2.0/rhel6/` in our case.
+  `/med/build/gcc/gcc-6.2.0/rhel6/` (in our case).
 ~ which gcc
 ~ gcc --version
+* Make sure to include correct path to PATH and LD_LIBRARY_PATH env variables.
+* Example usage:
 ~ setenv PATH /med/build/gcc/gcc-6.2.0/rhel6/bin:$PATH
-setenv LD_LIBRARY_PATH /med/build/gcc/gcc-6.2.0/rhel6/lib64:/usr/lib:/usr/lib64
+~ setenv LD_LIBRARY_PATH \
+  /med/build/gcc/gcc-6.2.0/rhel6/lib64:/usr/lib:/usr/lib64:$LD_LIBRARY_PATH
+
 ~ /path_to_dmtcp_executables/dmtcp_launch velsyn_command
 
 [After the checkpoint phase the checkpoint image should be created in the
@@ -67,14 +71,16 @@ setenv LD_LIBRARY_PATH /med/build/gcc/gcc-6.2.0/rhel6/lib64:/usr/lib:/usr/lib64
 Example Usage: /path_to_dmtcp_executables/dmtcp_resart <checkpoint_image_path>
 
 * Use --help flag for all flags.
+
 -------------
 Advance Usage
 -------------
 
-* Checkpoint and restore an application without integration in the application.
----
-* First Way:
----
+* There are two ways to checkpoint-restore an application without having dmtcp
+  integration in the application.
+---------------
+* First option:
+--------------
 [Terminal 1]
 ~ /path_to_dmtcp_executables/dmtcp_coordinator
 * By default the host is localhost and port is set to 7779.
@@ -95,17 +101,18 @@ Advance Usage
 
 [Terminal 3]
 * Same commands can be given by using `dmtcp_command`
-Example Usage: /path_to_dmtcp_executables/dmtcp_command -c
+  Example Usage: /path_to_dmtcp_executables/dmtcp_command -c
 * See other available commands by using `-h` or `--help`
 
 [Terminal 2]
-For restart
-/path_to_dmtcp_executables/dmtcp_resart -j -h <hostname> -p <port_number> \
+* For restart
+~ /path_to_dmtcp_executables/dmtcp_resart -j -h <hostname> -p <port_number> \
                                         <checkpoint_image_path>
 
----
-* Second way:
----
+----------------
+* Second option:
+----------------
+
 [Terminal 1]
 ~ /path_to_dmtcp_executable/dmtcp_launch -j -h localhost -p 7878 user_executable
 
@@ -114,3 +121,30 @@ For restart
 
 [Terminal 1]
 ~/path_to_dmtcp_executable/dmtcp_launch -j -h localhost -p 7878 <ckpt_file>
+
+
+-------
+Notes
+-------
+
+* dmtcp by default don't save open files and expects them to be exist at their
+  place. So, if you see ``Message: File not found`` error on restart,
+  use --ckpt-open-files --allow-file-overwrite flag with dmtcp_launch.
+  Dmtcp will then create a new directory for the open files.
+* See help with dmtcp_launch for more details.
+
+* If you encounter following error:
+```
+./bin/dmtcp_launch: /usr/lib64/libstdc++.so.6:
+ version `GLIBCXX_3.4.20' not found (required by ./bin/dmtcp_launch)
+./bin/dmtcp_launch: /usr/lib64/libstdc++.so.6:
+ version `CXXABI_1.3.9' not found (required by ./bin/dmtcp_launch)
+```
+  then you should check the environment variable $LD_LIBRARY_PATH and $PATH
+  value again and include the correct path (if not included already)
+
+* dmtcp_restart_script.sh by default points to last restart command. So, running
+  dmtcp_restart_script.sh is equivalent to ``dmtcp_restart ckpt-image`` command.
+
+* Multiple checkpoints overwrite the existing checkpoint image file. To avoid
+  overwriting, use `--enable-unique-checkpoint-filenames` configuration flag.
