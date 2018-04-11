@@ -148,3 +148,9 @@ Notes
 
 * Multiple checkpoints overwrite the existing checkpoint image file. To avoid
   overwriting, use `--enable-unique-checkpoint-filenames` configuration flag.
+
+* Steps for restarting from a compressed checkpoint image:
+1) Rename the checkpoint image from ckpt*.dmtcp to ckpt*.gz
+2) Apply gunzip for uncompressing.
+3) Make sure to rename the uncompressed file from ckpt* to ckpt*.dmtcp.
+4) Restart the application with the uncompressed checkpoint image as usual.
