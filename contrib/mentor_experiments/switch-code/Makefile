@@ -29,7 +29,7 @@ default: ${LIBNAME}.so
 
 check: tidy ${LIBNAME}.so dmtcp1 libdmtcp1.so
 	@# Note that full path of plugin (using $$PWD in this case) is required.
-	@DEBUG_LIB=./libdmtcp1.so REPLACE_SYMBOL_WITH_DEBUG=_ZN13switch_plugin6MyTime9time_loopEv \
+	@DEBUG_LIB=./libdmtcp1.so REPLACE_SYMBOL_WITH_DEBUG=_ZN3ABC6MyTime6t_loopEv \
   ${DMTCP_ROOT}/bin/dmtcp_launch --port ${DEMO_PORT}\
 	  --with-plugin $$PWD/${LIBNAME}.so ./dmtcp1 && \
   echo "Restarting..." && \
@@ -37,15 +37,27 @@ check: tidy ${LIBNAME}.so dmtcp1 libdmtcp1.so
     ckpt*.dmtcp
 
 dmtcp1-opt.o: dmtcp1.cpp
+	${CXX} -export-dynamic -I${DMTCP_INCLUDE} -fPIC -c -g -O2 -o $@ $^
+
+wrappers-opt.o: wrappers.cpp
 	${CXX} -I${DMTCP_INCLUDE} -fPIC -c -g -O2 -o $@ $^
 
-dmtcp1: dmtcp1-opt.o
-	${CXX} -export-dynamic -fPIC -o $@ $^
+real_func-opt.o: real_func.cpp
+	${CXX} -I${DMTCP_INCLUDE} -fPIC -c -g -O2 -o $@ $^
+
+dmtcp1: dmtcp1-opt.o wrappers-opt.o real_func-opt.o
+	${CXX} -export-dynamic -fPIC -Wl,--wrap=write -Wl,--wrap=open -o $@ $^
 
 dmtcp1-unopt.o: dmtcp1.cpp
 	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c -g -O0 -o $@ $^
 
-libdmtcp1.so: dmtcp1-unopt.o
+wrappers-unopt.o: wrappers.cpp
+	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c -g -O0 -o $@ $^
+
+real_func-unopt.o: real_func.cpp
+	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c -g -O0 -o $@ $^
+
+libdmtcp1.so: dmtcp1-unopt.o wrappers-unopt.o real_func-unopt.o
 	${CXX} -shared -o $@ $^
 
 # We link the library using C++ for compatibility with the main libdmtcp.so

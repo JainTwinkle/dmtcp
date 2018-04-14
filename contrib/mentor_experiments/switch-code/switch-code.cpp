@@ -33,11 +33,15 @@ restart()
   void *handle = dlopen(NULL, RTLD_NOW);
   void *addr = dlsym(handle, getenv("REPLACE_SYMBOL_WITH_DEBUG"));
   if (addr != NULL) {
-    void *debugHandle = dlopen(getenv("DEBUG_LIB"), RTLD_NOW);
+    JNOTE("Address found")(handle);
+    void *debugHandle = dlopen(getenv("DEBUG_LIB"), RTLD_NOW | RTLD_DEEPBIND);
+    JASSERT(debugHandle != NULL)(dlerror());
     void *debugWrapper = dlsym(debugHandle,
                                getenv("REPLACE_SYMBOL_WITH_DEBUG"));
     JASSERT(debugWrapper != NULL);
     dmtcp_setup_trampoline_by_addr(addr, debugWrapper, &main_trampoline_info);
+  } else {
+    JNOTE("Address not found");
   }
 }
 

@@ -2,20 +2,28 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
-
+#include <fcntl.h>
 #include "dmtcp.h"
 
-namespace switch_plugin {
+extern "C"
+{
+  ssize_t __real_write (int fd, const void *buf, size_t size);
+}
+
+#define STR1 "Hello.  This call to 'write()' _IS_ being wrapped.\n"
+#define STR2 "Hello.  This call to 'write()' is _NOT_ being wrapped.\n"
+
+namespace ABC {
 class MyTime
 {
   private:
-    void print_hello();
+    void p_hello();
   public:
-    float time_loop();
+    float t_loop();
 };
 
 void
-MyTime::print_hello()
+MyTime::p_hello()
 {
 #ifdef DEBUG
   printf("Hi..\n");
@@ -27,13 +35,13 @@ MyTime::print_hello()
 // This function will be replaced by its unoptimized
 // (debug) version on restart!
 float
-MyTime::time_loop()
+MyTime::t_loop()
 {
 #ifdef DEBUG
   printf("Debug function!\n");
 #endif
   volatile unsigned long long i;
-  print_hello();
+  p_hello();
   float x = 0;
   for (i = 0; i < 1000000000ULL; ++i)
     x += 0.1;
@@ -48,7 +56,12 @@ main(int argc, char *argv[])
 {
   int count = 1;
   struct timeval s, e, r;
-  switch_plugin::MyTime obj;
+  ABC::MyTime obj;
+//  MyTime obj;
+
+  int fd = open("temp.txt", O_CREAT | O_RDWR, 0666);
+  write(fd, STR1, sizeof STR1);
+  __real_write(fd, STR2, sizeof STR2);
 
   while (1) {
     printf(" %2d\n", count++);
@@ -63,7 +76,7 @@ main(int argc, char *argv[])
       }
     }
     gettimeofday(&s, NULL);
-    obj.time_loop();
+    obj.t_loop();
     gettimeofday(&e, NULL);
     timersub(&e, &s, &r);
     printf("Loop took: %llu\n", (long long)(r.tv_sec * 1e6 + r.tv_usec));
