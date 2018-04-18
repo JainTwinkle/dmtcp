@@ -13,35 +13,52 @@ extern "C"
 #define STR1 "Hello.  This call to 'write()' _IS_ being wrapped.\n"
 #define STR2 "Hello.  This call to 'write()' is _NOT_ being wrapped.\n"
 
-namespace ABC {
-class MyTime
+namespace switch_plugin {
+class BaseClass
 {
-  private:
-    void p_hello();
   public:
-    float t_loop();
+    virtual int calculate_sum(int , int ) = 0;
 };
 
+class MyTime //: public BaseClass
+{
+  private:
+    void print_hello();
+  public:
+    float time_loop();
+    int calculate_sum(int , int );
+};
+
+int
+MyTime::calculate_sum(int a, int b)
+{
+#ifdef DEBUG
+printf("DEBUG: ");
+#endif
+printf("sum = %d\n", a + b);
+}
+
 void
-MyTime::p_hello()
+MyTime::print_hello()
 {
 #ifdef DEBUG
   printf("Hi..\n");
 #else
   printf("Hello..\n");
 #endif
+  calculate_sum(3, 2);
 }
 
 // This function will be replaced by its unoptimized
 // (debug) version on restart!
 float
-MyTime::t_loop()
+MyTime::time_loop()
 {
 #ifdef DEBUG
   printf("Debug function!\n");
 #endif
   volatile unsigned long long i;
-  p_hello();
+  print_hello();
   float x = 0;
   for (i = 0; i < 1000000000ULL; ++i)
     x += 0.1;
@@ -56,8 +73,7 @@ main(int argc, char *argv[])
 {
   int count = 1;
   struct timeval s, e, r;
-  ABC::MyTime obj;
-//  MyTime obj;
+  switch_plugin::MyTime obj;
 
   int fd = open("temp.txt", O_CREAT | O_RDWR, 0666);
   write(fd, STR1, sizeof STR1);
@@ -76,7 +92,7 @@ main(int argc, char *argv[])
       }
     }
     gettimeofday(&s, NULL);
-    obj.t_loop();
+    obj.time_loop();
     gettimeofday(&e, NULL);
     timersub(&e, &s, &r);
     printf("Loop took: %llu\n", (long long)(r.tv_sec * 1e6 + r.tv_usec));

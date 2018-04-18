@@ -1,5 +1,8 @@
 # To demonstrate, do:  make check    [Checkpoints every 5 seconds]
 
+# Name of the dynamic symbol that we want to checkpoint
+DYNAMIC_SYMBOL=_ZN13switch_plugin6MyTime9time_loopEv
+
 # The name will be the same as the current directory name.
 NAME=${shell basename $$PWD}
 
@@ -29,7 +32,7 @@ default: ${LIBNAME}.so
 
 check: tidy ${LIBNAME}.so dmtcp1 libdmtcp1.so
 	@# Note that full path of plugin (using $$PWD in this case) is required.
-	@DEBUG_LIB=./libdmtcp1.so REPLACE_SYMBOL_WITH_DEBUG=_ZN3ABC6MyTime6t_loopEv \
+	@DEBUG_LIB=./libdmtcp1.so REPLACE_SYMBOL_WITH_DEBUG=${DYNAMIC_SYMBOL} \
   ${DMTCP_ROOT}/bin/dmtcp_launch --port ${DEMO_PORT}\
 	  --with-plugin $$PWD/${LIBNAME}.so ./dmtcp1 && \
   echo "Restarting..." && \
@@ -73,7 +76,7 @@ tidy:
 	rm -f *~ .*.swp dmtcp_restart_script*.sh ckpt_*.dmtcp
 
 clean:
-	rm -f ${LIBOBJS} ${LIBNAME}.so *.o *.so dmtcp1
+	rm -f ${LIBOBJS} ${LIBNAME}.so *.o *.so dmtcp1 temp.txt
 
 distclean: clean
 	rm -f ${LIBNAME}.so *~ .*.swp dmtcp_restart_script*.sh ckpt_*.dmtcp
