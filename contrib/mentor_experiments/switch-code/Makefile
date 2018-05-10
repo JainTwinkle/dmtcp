@@ -1,6 +1,7 @@
 # To demonstrate, do:  make check    [Checkpoints every 5 seconds]
 
 # Name of the dynamic symbol that we want to checkpoint
+#DYNAMIC_SYMBOL=_ZN13switch_plugin6MyTime13calculate_sumEii
 DYNAMIC_SYMBOL=_ZN13switch_plugin6MyTime9time_loopEv
 
 # The name will be the same as the current directory name.
@@ -20,7 +21,7 @@ DMTCP_INCLUDE=${DMTCP_ROOT}/include
 JALIB_INCLUDE=${DMTCP_ROOT}/jalib/
 
 CFLAGS += -I${DMTCP_INCLUDE} -I${JALIB_INCLUDE} -DDMTCP -fPIC -c --std=gnu99 -g -O0
-CXXFLAGS += -I${DMTCP_INCLUDE} -I${JALIB_INCLUDE} -I${DMTCP_ROOT}/src/ -DDMTCP -fPIC -c -g -O0
+CXXFLAGS += -I${DMTCP_INCLUDE} -I${JALIB_INCLUDE} -I${DMTCP_ROOT}/src/ -DDMTCP -fPIC -c --std=c++11 -g -O0
 
 # enable this for debugging the plugin
 # CFLAGS += -DCKPTTIMER_PLUGIN_DEBUG
@@ -40,7 +41,7 @@ check: tidy ${LIBNAME}.so dmtcp1 libdmtcp1.so
     ckpt*.dmtcp
 
 dmtcp1-opt.o: dmtcp1.cpp
-	${CXX} -export-dynamic -I${DMTCP_INCLUDE} -fPIC -c -g -O2 -o $@ $^
+	${CXX} -export-dynamic -I${DMTCP_INCLUDE} -fPIC -c --std=c++11 -g -O2 -o $@ $^
 
 wrappers-opt.o: wrappers.cpp
 	${CXX} -I${DMTCP_INCLUDE} -fPIC -c -g -O2 -o $@ $^
@@ -52,7 +53,7 @@ dmtcp1: dmtcp1-opt.o wrappers-opt.o real_func-opt.o
 	${CXX} -export-dynamic -fPIC -Wl,--wrap=write -Wl,--wrap=open -o $@ $^
 
 dmtcp1-unopt.o: dmtcp1.cpp
-	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c -g -O0 -o $@ $^
+	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c --std=c++11 -g -O0 -o $@ $^
 
 wrappers-unopt.o: wrappers.cpp
 	${CXX} -I${DMTCP_INCLUDE} -DDEBUG -fPIC -c -g -O0 -o $@ $^
