@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <fcntl.h>
 #include "jassert.h"
 #include "config.h"
 #include "dmtcp.h"
@@ -14,8 +14,30 @@
 # define JTRACE JNOTE
 #endif // ifdef SWITCH_CODE_PLUGIN_DEBUG
 
+using namespace std;
 static trampoline_info_t main_trampoline_info;
+char * DEBUG_LIB = getenv("DEBUG_LIB");
+char * BASE_EXE = getenv("BASE_EXE");
+char * SYMBOL_LIST = getenv("SYMBOL_LIST");
 
+static void
+replace_symbol(void * handle, void * debugHandle, char * symbol)
+{
+  void *addr = dlsym(handle, symbol);
+  if (addr != NULL) {
+    JNOTE("Address found")(handle);
+    void *debugWrapper = dlsym(debugHandle, symbol);
+    if (debugWrapper != NULL) {
+      JNOTE("Old Address")(addr);
+      JNOTE("New Address")(debugWrapper);
+      dmtcp_setup_trampoline_by_addr(addr, debugWrapper, &main_trampoline_info);
+    } else {
+      JNOTE("Address not present in the debug library") (symbol);
+    }
+  } else {
+    JNOTE("Address not found");
+  }
+}
 // Use REPLACE_SYMBOL_WITH_DEBUG to specify the name of the symbol to replace
 // on restart. The production version of the symbol is replaced with its debug
 // version on restart.
@@ -30,19 +52,31 @@ static trampoline_info_t main_trampoline_info;
 static void
 restart()
 {
+  // get the handle for both optimized executable and unoptimzed library
+  // by opening with dlopen
   void *handle = dlopen(NULL, RTLD_NOW);
-  void *addr = dlsym(handle, getenv("REPLACE_SYMBOL_WITH_DEBUG"));
-  if (addr != NULL) {
-    JNOTE("Address found")(handle);
-    void *debugHandle = dlopen(getenv("DEBUG_LIB"), RTLD_NOW | RTLD_DEEPBIND);
-    JASSERT(debugHandle != NULL)(dlerror());
-    void *debugWrapper = dlsym(debugHandle,
-                               getenv("REPLACE_SYMBOL_WITH_DEBUG"));
-    JASSERT(debugWrapper != NULL);
-    dmtcp_setup_trampoline_by_addr(addr, debugWrapper, &main_trampoline_info);
-  } else {
-    JNOTE("Address not found");
+  void *debugHandle = dlopen(DEBUG_LIB, RTLD_NOW);
+  JASSERT(debugHandle != NULL)(dlerror());
+  // TODO(Twinkle) : migrate work from python to c/c++
+  ostringstream o;
+  o << "python get_symbol_list.py " << BASE_EXE << " " << DEBUG_LIB;
+  string cmd = o.str();
+  system(cmd.c_str());
+  cout << DEBUG_LIB << "\n" << BASE_EXE << "\n" << SYMBOL_LIST << "\n";
+  // get all the symbols to be replaced from the file created by the python
+  // script.
+  // TODO(Twinkle) :use read system call
+  FILE * fp;
+  char symbol[200];
+  fp = fopen(SYMBOL_LIST, "r+");
+  JASSERT(fp != NULL) (JASSERT_ERRNO);
+  while (fscanf(fp, "%s", symbol) == 1)
+  {
+    printf("symbol = %s\n", symbol);
+    replace_symbol(handle, debugHandle, symbol);
   }
+  int dummy = 0;
+  while(!dummy);
 }
 
 static void
