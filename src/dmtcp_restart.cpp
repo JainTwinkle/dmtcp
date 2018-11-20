@@ -145,6 +145,7 @@ class RestoreTarget
       .Text("checkpoint file missing");
 
       _fd = readCkptHeader(_path, &_pInfo);
+/*
       ptrdiff_t clock_gettime_offset =
                             dmtcp_dlsym_lib_fnc_offset("linux-vdso",
                                                        "__vdso_clock_gettime");
@@ -162,6 +163,7 @@ class RestoreTarget
                     "Restart may fail if the program calls a function in to"
                     " vDSO, like, gettimeofday(), clock_gettime(), etc.");
       JTRACE("restore target") (_path) (_pInfo.numPeers()) (_pInfo.compGroup());
+*/
     }
 
     int fd() const { return _fd; }
