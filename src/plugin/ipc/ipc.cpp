@@ -27,6 +27,7 @@
 #include "jassert.h"
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 
 #include "event/eventconnlist.h"
 #include "file/fileconnlist.h"
@@ -235,7 +236,7 @@ dmtcp_initialize_plugin()
   dmtcp_register_plugin(ptyPlugin);
   dmtcp_register_plugin(socketPlugin);
 
-  void (*fn)() = NEXT_FNC(dmtcp_initialize_plugin);
+  void (*fn)() = NEXT_FNC_DEFAULT(dmtcp_initialize_plugin);
   if (fn != NULL) {
     (*fn)();
   }

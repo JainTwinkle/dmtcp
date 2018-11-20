@@ -5,6 +5,7 @@
 #include "jfilesystem.h"
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "dmtcpalloc.h"
 
 using namespace dmtcp;

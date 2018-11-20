@@ -142,7 +142,8 @@ typedef enum eDmtcpGetRestartEnvErr {
   EXTERNC void dmtcp_initialize_plugin()              \
   {                                                   \
     dmtcp_register_plugin(descr);                     \
-    void (*fn)() = NEXT_FNC(dmtcp_initialize_plugin); \
+    void (*fn)() =                                    \
+        NEXT_FNC_DEFAULT(dmtcp_initialize_plugin);    \
     if (fn != NULL) {                                 \
       (*fn)();                                        \
     }                                                 \

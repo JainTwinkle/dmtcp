@@ -3,6 +3,7 @@
 #include "coordinatorapi.h"
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "dmtcpalloc.h"
 #include "jtimer.h"
 #include "plugininfo.h"
@@ -69,7 +70,7 @@ dmtcp_initialize_plugin()
   dmtcp_register_plugin(CoordinatorAPI::pluginDescr());
   dmtcp_register_plugin(dmtcp_ProcessInfo_PluginDescr());
 
-  void (*fn)() = NEXT_FNC(dmtcp_initialize_plugin);
+  void (*fn)() = NEXT_FNC_DEFAULT(dmtcp_initialize_plugin);
   if (fn != NULL) {
     (*fn)();
   }

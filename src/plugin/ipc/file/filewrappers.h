@@ -24,6 +24,7 @@
 #define FILE_WRAPPERS_H
 
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 
 # define _real_open            NEXT_FNC(open)
 # define _real_open64          NEXT_FNC(open64)
@@ -57,7 +58,7 @@
 # define _real_mq_timedsend    NEXT_FNC(mq_timedsend)
 # define _real_mq_timedreceive NEXT_FNC(mq_timedreceive)
 # define _real_mq_notify       NEXT_FNC(mq_notify)
-# define _real_fcntl           NEXT_FNC(fcntl)
+# define _real_fcntl           NEXT_FNC_DEFAULT(fcntl)
 
 # define _real_system          NEXT_FNC(system)
 # define _real_mmap            NEXT_FNC(mmap)

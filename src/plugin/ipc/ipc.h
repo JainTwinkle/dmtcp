@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 
 # define CONNECTION_ID_START        99000
 
@@ -50,9 +51,9 @@
 # endif // if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) &&
         // __GLIBC_PREREQ(2, 9)
 
-# define _real_fcntl                NEXT_FNC(fcntl)
+# define _real_fcntl                NEXT_FNC_DEFAULT(fcntl)
 # define _real_select               NEXT_FNC(select)
 # define _real_poll                 NEXT_FNC(poll)
-# define _real_pthread_mutex_lock   NEXT_FNC(pthread_mutex_lock)
-# define _real_pthread_mutex_unlock NEXT_FNC(pthread_mutex_unlock)
+# define _real_pthread_mutex_lock   NEXT_FNC_DEFAULT(pthread_mutex_lock)
+# define _real_pthread_mutex_unlock NEXT_FNC_DEFAULT(pthread_mutex_unlock)
 #endif // ifndef DMTCP_IPC_H

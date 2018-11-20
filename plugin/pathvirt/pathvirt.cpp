@@ -32,6 +32,7 @@
 
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "jassert.h"
 #include "pathvirt.h"
 

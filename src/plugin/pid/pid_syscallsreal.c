@@ -44,7 +44,7 @@ static void *pid_real_func_addr[numPidVirtWrappers];
 static int pid_wrappers_initialized = 0;
 
 #define GET_FUNC_ADDR(name) \
-  pid_real_func_addr[PIDVIRT_ENUM(name)] = _real_dlsym(RTLD_NEXT, # name);
+  pid_real_func_addr[PIDVIRT_ENUM(name)] = dmtcp_dlsym(RTLD_NEXT, # name);
 
 #define GET_FUNC_ADDR_V(name, v)                                               \
   pid_real_func_addr[PIDVIRT_ENUM(name)] = dmtcp_dlvsym(RTLD_NEXT, # name, v); \

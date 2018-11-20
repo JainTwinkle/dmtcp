@@ -26,6 +26,7 @@
 #include "jfilesystem.h"
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "pidwrappers.h"
 #include "protectedfds.h"
 #include "shareddata.h"

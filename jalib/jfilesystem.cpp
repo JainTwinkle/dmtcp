@@ -180,7 +180,8 @@ jalib::Filesystem::GetProgramDir()
   if (value == NULL) {
     // Technically, this is a memory leak, but value is static and so it happens
     // only once.
-    value = new dmtcp::string(DirName(GetProgramPath()));
+    void *buf = JALLOC_MALLOC(PATH_MAX);
+    value = new (buf)dmtcp::string(DirName(GetProgramPath()));
   }
   return *value;
 }
@@ -193,7 +194,8 @@ jalib::Filesystem::GetProgramName()
   if (value == NULL) {
     size_t len;
     char cmdline[1024];
-    value = new dmtcp::string(BaseName ( GetProgramPath() )); // uses /proc/self/exe
+    void *buf = JALLOC_MALLOC(PATH_MAX);
+    value = new (buf)dmtcp::string(BaseName ( GetProgramPath() )); // uses /proc/self/exe
     // We may rewrite "a.out" to "/lib/ld-linux.so.2 a.out".  If so, find cmd.
     if (!value->empty()
         && jalib::elfInterpreter() != NULL
@@ -214,7 +216,8 @@ jalib::Filesystem::GetProgramPath()
   if (value == NULL) {
     // Technically, this is a memory leak, but value is static and so it happens
     // only once.
-    value = new dmtcp::string(_GetProgramExe());
+    void *buf = JALLOC_MALLOC(PATH_MAX);
+    value = new (buf)dmtcp::string(_GetProgramExe());
   }
   return *value;
 }
@@ -271,16 +274,16 @@ jalib::Filesystem::GetProgramArgs()
   if (rv == NULL) {
     // Technically, this is a memory leak, but rv is static and so it happens
     // only once.
-    rv = new dmtcp::vector<dmtcp::string>();
+    void *buf = JALLOC_MALLOC(sizeof(dmtcp::vector<dmtcp::string>));
+    rv = new (buf)dmtcp::vector<dmtcp::string>();
   }
 
   if (rv->empty()) {
     dmtcp::string path = "/proc/self/cmdline";
 
-    // FIXME: Replace fopen with open.
-    FILE *args = jalib::fopen(path.c_str(), "r");
+    int fd = jalib::open(path.c_str(), O_RDONLY);
 
-    JASSERT(args != NULL) (path).Text("failed to open command line");
+    JASSERT(fd != -1) (path).Text("failed to open command line");
 
     size_t len = 4095;
 
@@ -288,12 +291,17 @@ jalib::Filesystem::GetProgramArgs()
     // bad pointer.
     // We should replace getdelim with our own version
     char *lineptr = (char *)JALLOC_HELPER_MALLOC(len + 1);
-    while (getdelim(&lineptr, &len, '\0', args) >= 0) {
-      rv->push_back(lineptr);
+    int rc = jalib::readAll(fd, lineptr, len);
+    if (rc > 0) {
+      char *ptr = strtok(lineptr, "\0");
+      while (ptr != NULL) {
+        rv->push_back(ptr);
+        ptr = strtok(NULL, "\0");
+      }
     }
 
     JALLOC_HELPER_FREE(lineptr);
-    jalib::fclose(args);
+    jalib::close(fd);
   }
 
   return *rv;

@@ -24,12 +24,13 @@
 #define PTY_WRAPPERS_H
 
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 
 # define _real_xstat        NEXT_FNC(__xstat)
 # define _real_xstat64      NEXT_FNC(__xstat64)
-# define _real_lxstat       NEXT_FNC(__lxstat)
-# define _real_lxstat64     NEXT_FNC(__lxstat64)
-# define _real_readlink     NEXT_FNC(readlink)
+# define _real_lxstat       NEXT_FNC_DEFAULT(__lxstat)
+# define _real_lxstat64     NEXT_FNC_DEFAULT(__lxstat64)
+# define _real_readlink     NEXT_FNC_DEFAULT(readlink)
 # define _real_ptsname_r    NEXT_FNC(ptsname_r)
 # define _real_ttyname_r    NEXT_FNC(ttyname_r)
 # define _real_getpt        NEXT_FNC(getpt)

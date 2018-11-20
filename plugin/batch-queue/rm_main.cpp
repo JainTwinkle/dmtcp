@@ -31,6 +31,7 @@
 #include "rm_slurm.h"
 #include "rm_torque.h"
 #include "util.h"
+#include "dmtcp_dlsym.h"
 
 using namespace dmtcp;
 

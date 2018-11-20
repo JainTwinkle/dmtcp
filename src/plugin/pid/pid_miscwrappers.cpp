@@ -38,6 +38,7 @@
 #include "jfilesystem.h"
 #include "config.h"  // for HAS_CMA
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "pid.h"
 #include "pidwrappers.h"
 #include "shareddata.h"
@@ -63,7 +64,8 @@ __register_atfork(void (*prepare)(void), void (*parent)(void), void (*child)(
   /* dmtcp_initialize() must be called before __register_atfork().
    * NEXT_FNC() guarantees that dmtcp_initialize() is called if
    * it was not called earlier. */
-  return NEXT_FNC(__register_atfork)(prepare, parent, child, dso_handle);
+  return NEXT_FNC_DEFAULT(__register_atfork)
+           (prepare, parent, child, dso_handle);
 }
 
 extern "C" pid_t

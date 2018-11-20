@@ -24,6 +24,7 @@
 #include "../jalib/jconvert.h"
 #include "constants.h"
 #include "dmtcpworker.h"
+#include "dmtcp_dlsym.h"
 #include "processinfo.h"
 #include "protectedfds.h"
 #include "syscallwrappers.h"

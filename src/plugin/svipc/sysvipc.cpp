@@ -35,6 +35,7 @@
 #include "jserialize.h"
 #include "config.h"
 #include "dmtcp.h"
+#include "dmtcp_dlsym.h"
 #include "shareddata.h"
 #include "util.h"
 

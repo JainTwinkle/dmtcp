@@ -279,7 +279,7 @@ readlink(const char *path, char *buf, size_t bufsiz)
 
   // FIXME:  Suppose the real path is longer than PATH_MAX.  Do we check?
   updateProcPathVirtualToReal(path, &newpath);
-  return NEXT_FNC(readlink) (newpath, buf, bufsiz);
+  return NEXT_FNC_DEFAULT(readlink) (newpath, buf, bufsiz);
 
 #if 0
   if (ret != -1) {

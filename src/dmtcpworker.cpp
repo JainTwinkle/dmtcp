@@ -334,7 +334,6 @@ dmtcp_initialize()
   PluginManager::eventHook(DMTCP_EVENT_INIT, NULL);
 
   ThreadSync::initMotherOfAll();
-  ThreadList::init();
 }
 
 // called before user main()
@@ -342,6 +341,7 @@ dmtcp_initialize()
 DmtcpWorker::DmtcpWorker()
 {
   dmtcp_initialize();
+  ThreadList::init();
 }
 
 void
