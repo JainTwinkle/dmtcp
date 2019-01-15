@@ -136,6 +136,9 @@ static const char *theUsage =
   "              Disable dl plugin (default: enabled).\n"
   "  --disable-all-plugins (EXPERTS ONLY, FOR DEBUGGING)\n"
   "              Disable all plugins.\n"
+  "  --spades    Enable support for spades.py\n"
+  "              (-o <output-dir> spades.py option is required)\n"
+  "              (default: disabled).\n"
   "\n"
   "Other options:\n"
   "  --tmpdir PATH (environment variable DMTCP_TMPDIR)\n"
@@ -179,6 +182,7 @@ static bool enableIPCPlugin = true;
 static bool enableSvipcPlugin = true;
 static bool enablePathVirtPlugin = false;
 static bool enableTimerPlugin = true;
+static bool enableSpadesPlugin = false;
 
 #ifdef UNIQUE_CHECKPOINT_FILENAMES
 static bool enableUniqueCkptPlugin = true;
@@ -211,6 +215,7 @@ static struct PluginInfo pluginInfo[] = {               // Default value
   { &enablePathVirtPlugin,  "libdmtcp_pathvirt.so"},    // Disabled
   { &enableTimerPlugin, "libdmtcp_timer.so" },          // Enabled
   { &enableLibDMTCP, "libdmtcp.so" },                   // Enabled
+  { &enableSpadesPlugin,  "libdmtcp_spades.so"},        // Disabled
   // PID plugin must come last.
   { &enablePIDPlugin, "libdmtcp_pid.so" }               // Enabled
 };
@@ -223,6 +228,16 @@ string coord_host = "";
 int coord_port = UNINITIALIZED_PORT;
 static string thePortFile;
 
+
+char *
+abspath(const char *relative_path)
+{
+  char *real_path = NULL;
+  real_path = (char *)malloc(PATH_MAX + 1);
+  realpath(relative_path, real_path);
+  JASSERT (real_path != NULL)("realpath failed!") (relative_path) (real_path);
+  return real_path;
+}
 // shift args
 #define shift argc--, argv++
 static void
@@ -323,6 +338,9 @@ processArgs(int *orig_argc, char ***orig_argv)
     } else if (s == "--modify-env") {
       enableModifyEnvPlugin = true;
       shift;
+    } else if (s == "--spades") {
+      enableSpadesPlugin = true;
+      shift;
     } else if (s == "--pathvirt") {
       enablePathVirtPlugin = true;
       shift;
@@ -352,7 +370,6 @@ processArgs(int *orig_argc, char ***orig_argv)
       shift; shift;
     } else if (s == "-q" || s == "--quiet") {
       *getenv(ENV_VAR_QUIET) = *getenv(ENV_VAR_QUIET) + 1;
-
       // Just in case a non-standard version of setenv is being used:
       setenv(ENV_VAR_QUIET, getenv(ENV_VAR_QUIET), 1);
       shift;
@@ -607,6 +624,20 @@ main(int argc, char **argv)
                          &localIPAddr);
 
   setLDPreloadLibs(is32bitElf);
+  if (enableSpadesPlugin) {
+    for (int i = 0; argc > 0 && i < argc; i++)
+    {
+      string s = argv[i];
+      if (s == "--test") {
+        setenv(ENV_VAR_OUTDIR, abspath("spades_test"), 1);
+        break;
+      }
+      if ((i < argc -1) && (s == "-o")) {
+        setenv(ENV_VAR_OUTDIR, abspath(argv[i+1]), 1);
+        break;
+      }
+    }
+  }
 
   // run the user program
   char **newArgv = NULL;

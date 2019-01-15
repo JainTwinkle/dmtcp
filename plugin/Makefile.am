@@ -95,6 +95,15 @@ __d_libdir__libdmtcp_modify_env_so_LDFLAGS = $(dmtcp_ldflags)
 __d_libdir__libdmtcp_modify_env_so_LDADD = $(LDADD)
 
 #
+# spades plugin
+#
+libdmtcp_PROGRAMS += $(d_libdir)/libdmtcp_spades.so
+__d_libdir__libdmtcp_spades_so_SOURCES =                           \
+	spades/spades-plugin.cpp
+__d_libdir__libdmtcp_spades_so_LDFLAGS = $(dmtcp_ldflags)
+__d_libdir__libdmtcp_spades_so_LDADD = $(LDADD)
+
+#
 # Pathvirt plugin
 #
 libdmtcp_PROGRAMS += $(d_libdir)/libdmtcp_pathvirt.so
