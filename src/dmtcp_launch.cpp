@@ -625,16 +625,19 @@ main(int argc, char **argv)
 
   setLDPreloadLibs(is32bitElf);
   if (enableSpadesPlugin) {
+    // default value
+    setenv(ENV_VAR_SPADES_TMPDIR, "", 1);
     for (int i = 0; argc > 0 && i < argc; i++)
     {
       string s = argv[i];
       if (s == "--test") {
-        setenv(ENV_VAR_OUTDIR, abspath("spades_test"), 1);
-        break;
+        setenv(ENV_VAR_SPADES_OUTDIR, abspath("spades_test"), 1);
       }
       if ((i < argc -1) && (s == "-o")) {
-        setenv(ENV_VAR_OUTDIR, abspath(argv[i+1]), 1);
-        break;
+        setenv(ENV_VAR_SPADES_OUTDIR, abspath(argv[i+1]), 1);
+      }
+      if ((i < argc -1) && (s == "--tmp-dir")) {
+        setenv(ENV_VAR_SPADES_TMPDIR, abspath(argv[i+1]), 1);
       }
     }
   }

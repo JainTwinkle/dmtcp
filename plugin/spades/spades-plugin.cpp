@@ -20,15 +20,20 @@
 #include "config.h"
 #include "jassert.h"
 #include "../src/constants.h"
+#include "../src/uniquepid.h"
 
 using namespace dmtcp;
 
 dmtcp::string ckptDir;
 dmtcp::string outputDirName;
 dmtcp::string outputDirAbsPath;
+dmtcp::string tmpDirName;
+dmtcp::string tmpDirAbsPath;
+dmtcp::string uniqueSuffix;
 pid_t leader_pid;
+int ckptedTmp = 0;
 
-// Every process would try to get the lock
+// Every process will try to get the lock
 void pre_ckpt()
 {
   /*
@@ -38,9 +43,11 @@ void pre_ckpt()
     tim.tv_nsec = 500000L * rand() / RAND_MAX;
     nanosleep(&tim ,(struct timespec *)NULL);
   */
+
   // get the output directory of spades
   ckptDir = getenv(ENV_VAR_CHECKPOINT_DIR);
   JASSERT (ckptDir != "") ("checkpoint dir is not set!");
+
   // open the file in the output directory
   dmtcp::string flock_file  = ckptDir + "/precious_file";
   int flag = O_RDONLY;
@@ -62,27 +69,21 @@ void pre_ckpt()
   }
 }
 
-int save_output_dir()
+void save_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
 {
-  outputDirAbsPath = getenv(ENV_VAR_OUTDIR);
-  JASSERT (outputDirAbsPath != "") ("spades output dir name is not found");
-
-  // directory name
-  size_t index = outputDirAbsPath.find_last_of("/");
-  outputDirName = outputDirAbsPath.substr(index+1);
-
   // make the directory if not exist
   ostringstream mkdirCmd;
-  mkdirCmd << "mkdir -p "<< ckptDir << "/" << outputDirName << "_bck";
+  mkdirCmd << "mkdir -p "<< ckptDir << "/" << dirName
+    << "-bck-" << uniqueSuffix;
   system(mkdirCmd.str().c_str());
   JTRACE("directory make command")(mkdirCmd.str());
-  // copy the output directory
+
+  // copy the directory
   ostringstream cmd;
-  cmd << "cp -rf " << outputDirAbsPath << "/. " << ckptDir
-    << "/" << outputDirName << "_bck/";
+  cmd << "cp -rf " << dirAbsPath << "/. " << ckptDir
+    << "/" << dirName << "-bck-" << uniqueSuffix;
   system(cmd.str().c_str());
   JTRACE("directory copied command ")(cmd.str());
-  return 1;
 }
 
 int is_leader()
@@ -90,38 +91,69 @@ int is_leader()
   return (getpid() == leader_pid);
 }
 
+void setup_global_info()
+{
+  dmtcp::string ckptSuffix = UniquePid::ThisProcess().toString();
+  uniqueSuffix = ckptSuffix.substr(ckptSuffix.find_last_of('-')+1);
+  tmpDirAbsPath = getenv(ENV_VAR_SPADES_TMPDIR);
+  outputDirAbsPath = getenv(ENV_VAR_SPADES_OUTDIR);
+  JASSERT (outputDirAbsPath != "") ("spades output dir name is not found");
+  // directory name
+  size_t index = outputDirAbsPath.find_last_of("/");
+  outputDirName = outputDirAbsPath.substr(index+1);
+}
+
 /* 
- * Every process 
- * select the leader to save the precious files
+ * Every process select the leader to save the precious files
  */
 void drain_precious_files()
 {
-  // save the output directory of the spades if you are the leader
+  // save the precioud files if the current process is the leader
   if (is_leader())
   {
-    save_output_dir();
+    setup_global_info();
+    save_dir(outputDirAbsPath, outputDirName);
+
+    if (tmpDirAbsPath != "")
+    {
+      // directory name
+      size_t index = tmpDirAbsPath.find_last_of("/");
+      tmpDirName = tmpDirAbsPath.substr(index+1);
+      save_dir(tmpDirAbsPath, tmpDirName);
+      ckptedTmp = 1;
+    }
   }
 }
 
+void restore_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
+{
+  JTRACE("Dir is restore back to the original path");
+  ostringstream mkdirCmd;
+
+  // make the directory if doesn't exist
+  mkdirCmd << "mkdir -p "<< dirAbsPath;
+  system(mkdirCmd.str().c_str());
+  JTRACE("directory restore command")(mkdirCmd.str());
+
+  // copy the output directory
+  ostringstream cmd;
+  cmd << "cp -rf " << ckptDir << "/" << dirName
+    << "-bck-" << uniqueSuffix << "/. " << dirAbsPath << "/";
+  system(cmd.str().c_str());
+  JTRACE("directory copied command ")(cmd.str());
+}
+
 /*
-  restore the output dir
+  restore the precious directory
 */
 void restart()
 {
   if (is_leader()) {
-    JTRACE("Output dir is restore back to the original path");
-    ostringstream mkdirCmd;
-    // make the directory if doesn't exist
-    mkdirCmd << "mkdir -p "<< outputDirAbsPath;
-    system(mkdirCmd.str().c_str());
-    JTRACE("directory restore command")(mkdirCmd.str());
-
-    // copy the output directory
-    ostringstream cmd;
-    cmd << "cp -rf " << ckptDir << "/" << outputDirName << "_bck/. "
-      << outputDirAbsPath << "/";
-    system(cmd.str().c_str());
-    JTRACE("directory copied command ")(cmd.str());
+    restore_dir(outputDirAbsPath, outputDirName);
+    // restore tmp-dir if it was saved
+    if (ckptedTmp) {
+      restore_dir(tmpDirAbsPath, tmpDirName);
+    }
   }
 }
 
