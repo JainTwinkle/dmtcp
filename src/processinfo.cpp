@@ -276,13 +276,23 @@ ProcessInfo::init()
 
   growStack();
 
+  uint64_t one_page = sysconf(_SC_PAGESIZE);
+  uint64_t two_page = 2 * one_page;
   // Reserve space for restoreBuf
   _restoreBufLen = RESTORE_TOTAL_SIZE;
-
-  _restoreBufAddr = (uint64_t) mmap(NULL, _restoreBufLen, PROT_NONE,
+  // request for two extra page to make guard page at both ends
+  _restoreBufAddr = (uint64_t) mmap(NULL, _restoreBufLen + two_page, PROT_NONE,
                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  JASSERT(_restoreBufLen != (uint64_t) MAP_FAILED) (JASSERT_ERRNO);
-
+  JASSERT(_restoreBufAddr != (uint64_t) MAP_FAILED) (JASSERT_ERRNO);
+  // mprotect guard page without read/write permission but with
+  // executable permission to make two entries in proc maps
+  JASSERT(mprotect((void *)_restoreBufAddr, one_page, PROT_EXEC) == 0)
+         (JASSERT_ERRNO);
+  // update the _restoreBufAddr
+  _restoreBufAddr = _restoreBufAddr + one_page;
+  // create another guard page at the end of the region
+  JASSERT(mprotect((void *)(_restoreBufAddr + _restoreBufLen),
+                   one_page, PROT_EXEC) == 0) (JASSERT_ERRNO);
   if (_ckptDir.empty()) {
     updateCkptDirFileSubdir();
   }
