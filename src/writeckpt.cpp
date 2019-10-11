@@ -144,6 +144,20 @@ mtcp_writememoryareas(int fd)
     // never get back to this function and the object is never released.
     delete procSelfMaps;
   }
+  /* The restoreBuf memory region might have merged with neighbor memory regions
+   * with same permissions (PROT_NONE). We will unmap this region before
+   * processing all /proc/self/maps regions. And, will map this region back
+   * afterwards to reserve the same area.
+   * Unmap-map works as there's no data in the region to lose in unmapping.
+   *
+   * Note: We could achieve the same results by adding a guard page at each end.
+   *       However, this is a more cleaner solution.
+   */
+  JASSERT(munmap((void *)ProcessInfo::instance().restoreBufAddr(),
+            ProcessInfo::instance().restoreBufLen()) == 0)
+    ((void *)ProcessInfo::instance().restoreBufAddr())
+    (ProcessInfo::instance().restoreBufLen())
+    (JASSERT_ERRNO);
 
   /* Finally comes the memory contents */
   procSelfMaps = new ProcSelfMaps();
@@ -153,13 +167,7 @@ mtcp_writememoryareas(int fd)
     // will invoke mmap if the JAlloc arena is full. Similarly, for STL objects
     // such as vector and string.
 
-    if ((uint64_t)area.addr == ProcessInfo::instance().restoreBufAddr()) {
-      JASSERT(area.size == ProcessInfo::instance().restoreBufLen())
-        ((void *)area.addr)
-        (area.size)
-        (ProcessInfo::instance().restoreBufLen());
-      continue;
-    } else if (SharedData::isSharedDataRegion(area.addr)) {
+    if (SharedData::isSharedDataRegion(area.addr)) {
       continue;
     }
 
@@ -300,6 +308,17 @@ mtcp_writememoryareas(int fd)
   area.addr = NULL; // End of data
   area.size = -1; // End of data
   Util::writeAll(fd, &area, sizeof(area));
+
+  /* mmap the restoreBuf memory region back to reserve the same area. */
+  JASSERT(mmap((void *)ProcessInfo::instance().restoreBufAddr(),
+               ProcessInfo::instance().restoreBufLen(),
+               PROT_NONE,
+               MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
+               -1,
+                0) != MAP_FAILED)
+    ((void *)ProcessInfo::instance().restoreBufAddr())
+    (ProcessInfo::instance().restoreBufLen())
+    (JASSERT_ERRNO);
 
   /* That's all folks */
   JASSERT(_real_close(fd) == 0);
@@ -454,8 +473,8 @@ writememoryarea(int fd, Area *area, int stack_was_seen)
     JTRACE("skipping over memory special section")
       (area->name) (addr) (area->size);
   } else if ( area->__addr == ProcessInfo::instance().vdsoStart() ) {
-    //vDSO issue:
-    //    As always, we never want to save the vdso section.  We will use
+    // vDSO issue:
+    //   As always, we never want to save the vdso section.  We will use
     //  the vdso section code provided by the kernel on restart.  Further,
     //  the user code on restart has already been initialized and so it
     //  will continue to use the original vdso section determined during
@@ -475,7 +494,7 @@ writememoryarea(int fd, Area *area, int stack_was_seen)
     //  be saving the original vdso section (which is wrong), and we would
     //  be failing to save the user's memory that was restored into the
     //  location labelled by the kernel's "[vdso]" label.  This last
-    //  case is even worse, since we have now failed to restore some user data. 
+    //  case is even worse, since we have now failed to restore some user data.
     //    This was observed to happen in RHEL 6.6.  The solution is to
     //  trust DMTCP for the vdso location (as in the if condition above),
     //  and not to trust the kernel's "[vdso]" label.
