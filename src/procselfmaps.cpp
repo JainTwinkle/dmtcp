@@ -35,8 +35,25 @@ ProcSelfMaps::ProcSelfMaps()
   fd(-1),
   numAllocExpands(0)
 {
-  char buf[4096];
+  expand();
+  init();
+}
 
+ProcSelfMaps::ProcSelfMaps(bool allocOnly)
+  : dataIdx(0),
+  numAreas(0),
+  numBytes(0),
+  fd(-1),
+  numAllocExpands(0)
+{
+  if (allocOnly) {
+    expand();
+  }
+}
+
+void
+ProcSelfMaps::expand()
+{
   // NOTE: preExpand() verifies that we have at least 10 chunks pre-allocated
   // for each level of the allocator.  See jalib/jalloc.cpp:preExpand().
   // It assumes no allocation larger than jalloc.cpp:MAX_CHUNKSIZE.
@@ -53,7 +70,12 @@ ProcSelfMaps::ProcSelfMaps()
   // FIXME:  Also, any memory allocated and not freed since the calls to
   // setcontext() on the various threads will be a memory leak on restart.
   // We should check for that.
+}
 
+void
+ProcSelfMaps::init()
+{
+  char buf[4096];
   fd = _real_open("/proc/self/maps", O_RDONLY);
   JASSERT(fd != -1) (JASSERT_ERRNO);
   ssize_t numRead = 0;

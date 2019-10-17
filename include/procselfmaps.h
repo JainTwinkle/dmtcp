@@ -18,11 +18,14 @@ class ProcSelfMaps
 #endif // ifdef JALIB_ALLOCATOR
 
     ProcSelfMaps();
+    ProcSelfMaps(bool allocOnly);
     ~ProcSelfMaps();
 
     size_t getNumAreas() const { return numAreas; }
 
     int getNextArea(ProcMapsArea *area);
+    void init();
+    void expand();
 
   private:
     unsigned long int readDec();

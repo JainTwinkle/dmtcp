@@ -144,6 +144,18 @@ mtcp_writememoryareas(int fd)
     // never get back to this function and the object is never released.
     delete procSelfMaps;
   }
+  /* Finally comes the memory contents */
+  /* We initalize the object before unmaping the restoreBuf memory region to
+     prevent new operator to put procSelfMaps object in the reserved area.
+
+     Unlike default constructor, we call the parameterized constructor here
+     that will let us read /proc/self/maps after we unmap the reserved
+     restoreBuf area.
+     This is to exclude the restoreBuf region from /proc/self/maps before we
+     read the file.
+  */
+  procSelfMaps = new ProcSelfMaps(true);
+
   /* The restoreBuf memory region might have merged with neighbor memory regions
    * with same permissions (PROT_NONE). We will unmap this region before
    * processing all /proc/self/maps regions. And, will map this region back
@@ -159,8 +171,8 @@ mtcp_writememoryareas(int fd)
     (ProcessInfo::instance().restoreBufLen())
     (JASSERT_ERRNO);
 
-  /* Finally comes the memory contents */
-  procSelfMaps = new ProcSelfMaps();
+  // read the /proc/self/maps explicitly
+  procSelfMaps->init();
   while (procSelfMaps->getNextArea(&area)) {
     // TODO(kapil): Verify that we are not doing any operation that might
     // result in a change of memory layout. For example, a call to JALLOC_NEW
