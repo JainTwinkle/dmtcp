@@ -75,6 +75,7 @@ _isBlacklistedFile(string &path)
   if ((Util::strStartsWith(path.c_str(), "/dev/") &&
        !Util::strStartsWith(path.c_str(), "/dev/shm/")) ||
       Util::strStartsWith(path.c_str(), "/proc/") ||
+      Util::strStartsWith(path.c_str(), "/var/") || // skip exvivo nvme area
       Util::strStartsWith(path.c_str(), dmtcp_get_tmpdir())) {
     return true;
   }
@@ -301,6 +302,7 @@ FileConnection::refill(bool isRestart)
     return;
   }
   if (strstr(_path.c_str(), "infiniband/uverbs") ||
+      Util::strStartsWith(_path.c_str(), "/var/") || // skip exvivo nvme area
       strstr(_path.c_str(), "uverbs-event")) {
     return;
   }
