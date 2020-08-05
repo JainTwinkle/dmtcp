@@ -759,6 +759,11 @@ ThreadList::postRestart(double readTime)
 #endif // ifdef HAS_PR_SET_PTRACER
   }
 
+  /* On restart, if the system has a different limit on open file descriptors,
+   * we need to reset the base protected fd and the coordinator socket.
+   */
+  Util::setProtectedFdBase();
+  // CoordinatorAPI::instance().resetCoordSocketFd();
   SharedData::postRestart();
 
   /* Fill in the new mother process id */

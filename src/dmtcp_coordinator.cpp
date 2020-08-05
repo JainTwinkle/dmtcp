@@ -1472,6 +1472,7 @@ DmtcpCoordinator::addDataSocket(CoordClient *client)
 int
 main(int argc, char **argv)
 {
+  Util::setProtectedFdBase();
   initializeJalib();
 
   // parse port
