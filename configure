@@ -671,9 +671,6 @@ ARM_HOST_TRUE
 X64_HOST
 X64_HOST_FALSE
 X64_HOST_TRUE
-MULTILIB
-CONFIG_MULTILIB_FALSE
-CONFIG_MULTILIB_TRUE
 HAS_READLINE
 M32
 CONFIG_M32_FALSE
@@ -7874,10 +7871,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CONFIG_M32_TRUE}" && test -z "${CONFIG_M32_FALSE}"; then
   as_fn_error $? "conditional \"CONFIG_M32\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${CONFIG_MULTILIB_TRUE}" && test -z "${CONFIG_MULTILIB_FALSE}"; then
-  as_fn_error $? "conditional \"CONFIG_MULTILIB\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${X64_HOST_TRUE}" && test -z "${X64_HOST_FALSE}"; then
