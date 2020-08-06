@@ -54,7 +54,7 @@ void pre_ckpt()
   if( access(flock_file.c_str(), F_OK ) == -1 ) {
     flag = O_RDWR |  O_CREAT;
   }
-  int fd = open(flock_file.c_str(), flag);
+  int fd = open(flock_file.c_str(), flag, 0644);
   JASSERT ((fd != -1) || (errno == EACCES)) (JASSERT_ERRNO) (fd);
   int lock = LOCK_EX;
   if (fd != -1) {
@@ -75,14 +75,17 @@ void save_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
   ostringstream mkdirCmd;
   mkdirCmd << "mkdir -p "<< ckptDir << "/" << dirName
     << "-bck-" << uniqueSuffix;
-  system(mkdirCmd.str().c_str());
+  int ret = system(mkdirCmd.str().c_str());
+  JASSERT(ret != -1) ("Pre-ckpt: mkdir command failed for spades")
+    (mkdirCmd.str());
   JTRACE("directory make command")(mkdirCmd.str());
 
   // copy the directory
   ostringstream cmd;
   cmd << "cp -rf " << dirAbsPath << "/. " << ckptDir
     << "/" << dirName << "-bck-" << uniqueSuffix;
-  system(cmd.str().c_str());
+  ret = system(cmd.str().c_str());
+  JASSERT(ret != -1) ("Pre-ckpt: copy command failed for spades") (cmd.str());
   JTRACE("directory copied command ")(cmd.str());
 }
 
@@ -132,14 +135,17 @@ void restore_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
 
   // make the directory if doesn't exist
   mkdirCmd << "mkdir -p "<< dirAbsPath;
-  system(mkdirCmd.str().c_str());
+  int ret = system(mkdirCmd.str().c_str());
+  JASSERT(ret != -1) ("Restore: mkdir command failed for spades")
+    (mkdirCmd.str());
   JTRACE("directory restore command")(mkdirCmd.str());
 
   // copy the output directory
   ostringstream cmd;
   cmd << "cp -rf " << ckptDir << "/" << dirName
     << "-bck-" << uniqueSuffix << "/. " << dirAbsPath << "/";
-  system(cmd.str().c_str());
+  ret = system(cmd.str().c_str());
+  JASSERT(ret != -1) ("Restore: copy command failed for spades") (cmd.str());
   JTRACE("directory copied command ")(cmd.str());
 }
 
@@ -157,14 +163,14 @@ void restart()
   }
 }
 
-  static void
+static void
 cuda_plugin_event_hook(DmtcpEvent_t event, DmtcpEventData_t *data)
 {
   switch (event) {
     case DMTCP_EVENT_INIT:
       {
         JTRACE("*** DMTCP_EVENT_INIT");
-        JTRACE("Plugin intialized");
+        JTRACE("Spades Plugin intialized");
         break;
       }
     case DMTCP_EVENT_EXIT:
