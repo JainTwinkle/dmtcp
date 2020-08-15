@@ -151,6 +151,7 @@ class ProcessInfo
                             ptrdiff_t f3, ptrdiff_t f4);
 
     string getCkptFilename() const { return _ckptFileName; }
+    string getTempCkptFilename() const { return _ckptFileName + ".temp"; }
 
     string getCkptFilesSubDir() const { return _ckptFilesSubDir; }
 
