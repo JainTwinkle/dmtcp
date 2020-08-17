@@ -33,21 +33,7 @@ dmtcp::string uniqueSuffix;
 pid_t leader_pid;
 int ckptedTmp = 0;
 
-// Every process will try to get the lock
-void pre_ckpt()
-{
-  /*
-    QUE: should we use random wait to give preference to one process?
-    struct timespec tim;
-    tim.tv_sec = 1;
-    tim.tv_nsec = 500000L * rand() / RAND_MAX;
-    nanosleep(&tim ,(struct timespec *)NULL);
-  */
-
-  // get the output directory of spades
-  ckptDir = getenv(ENV_VAR_CHECKPOINT_DIR);
-  JASSERT (ckptDir != "") ("checkpoint dir is not set!");
-
+void electLeaderByFlock() {
   // open the file in the output directory
   dmtcp::string flock_file  = ckptDir + "/precious_file";
   int flag = O_RDONLY;
@@ -67,6 +53,35 @@ void pre_ckpt()
     close(fd);
     unlink(flock_file.c_str());
   }
+}
+
+void electLeaderByPid()
+{
+  /*
+    spades.py is python script. So, mother of all process in spades (python)
+    will remain alive throughout the lifetime.
+    Since, we need to select only one process to save and restore precious
+    files, we can make python process leader on each interval.
+    FIXME: get base virtual PID dynamically.
+  */
+  leader_pid = 40000;
+}
+
+// Every process will try to get the lock
+void pre_ckpt()
+{
+  /*
+    QUE: should we use random wait to give preference to one process?
+    struct timespec tim;
+    tim.tv_sec = 1;
+    tim.tv_nsec = 500000L * rand() / RAND_MAX;
+    nanosleep(&tim ,(struct timespec *)NULL);
+  */
+
+  // get the output directory of spades
+  ckptDir = getenv(ENV_VAR_CHECKPOINT_DIR);
+  JASSERT (ckptDir != "") ("checkpoint dir is not set!");
+  electLeaderByPid();
 }
 
 void save_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
