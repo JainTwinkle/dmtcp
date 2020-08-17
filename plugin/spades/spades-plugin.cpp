@@ -89,7 +89,7 @@ void save_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
   // make the directory if not exist
   ostringstream mkdirCmd;
   mkdirCmd << "mkdir -p "<< ckptDir << "/" << dirName
-    << "-bck-" << uniqueSuffix;
+    << "-bck-" << uniqueSuffix << "-temp";
   int ret = system(mkdirCmd.str().c_str());
   JASSERT(ret != -1) ("Pre-ckpt: mkdir command failed for spades")
     (mkdirCmd.str());
@@ -98,7 +98,7 @@ void save_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
   // copy the directory
   ostringstream cmd;
   cmd << "cp -rf " << dirAbsPath << "/. " << ckptDir
-    << "/" << dirName << "-bck-" << uniqueSuffix;
+    << "/" << dirName << "-bck-" << uniqueSuffix << "-temp";
   ret = system(cmd.str().c_str());
   JASSERT(ret != -1) ("Pre-ckpt: copy command failed for spades") (cmd.str());
   JTRACE("directory copied command ")(cmd.str());
@@ -178,6 +178,29 @@ void restart()
   }
 }
 
+void rename_dir(dmtcp::string dirAbsPath, dmtcp::string dirName)
+{
+  // rename the output directory
+  ostringstream cmd;
+  cmd << "rm -rf " << ckptDir << "/" << dirName << "-bck-" << uniqueSuffix
+    <<";mv " << ckptDir << "/" << dirName << "-bck-" << uniqueSuffix << "-temp "
+    << ckptDir << "/" << dirName << "-bck-" << uniqueSuffix;
+  int ret = system(cmd.str().c_str());
+  JASSERT(ret != -1) ("Resume: rename from temp to spades backup failed")
+    (cmd.str());
+  JTRACE("directory rename command ")(cmd.str());
+}
+
+void rename_spades_backup()
+{
+  if (is_leader()) {
+    rename_dir(outputDirAbsPath, outputDirName);
+    // rename tmp-dir if it was saved
+    if (ckptedTmp) {
+      rename_dir(tmpDirAbsPath, tmpDirName);
+    }
+  }
+}
 static void
 cuda_plugin_event_hook(DmtcpEvent_t event, DmtcpEventData_t *data)
 {
@@ -199,6 +222,7 @@ cuda_plugin_event_hook(DmtcpEvent_t event, DmtcpEventData_t *data)
 static DmtcpBarrier spadesPluginBarriers[] = {
   {DMTCP_GLOBAL_BARRIER_PRE_CKPT, pre_ckpt, "checkpoint"},
   {DMTCP_GLOBAL_BARRIER_PRE_CKPT, drain_precious_files, "save-precious-files"},
+  {DMTCP_GLOBAL_BARRIER_RESUME, rename_spades_backup, "rename-spades-backup"},
   {DMTCP_GLOBAL_BARRIER_RESTART, restart, "restart"}
 };
 
