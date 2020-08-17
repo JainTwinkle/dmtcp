@@ -512,7 +512,7 @@ DmtcpWorker::postCheckpoint()
 
   // TODO: Merge this barrier with the previous `sendCkptFilename` msg.
   JTRACE("Waiting for Write-Ckpt barrier");
-  CoordinatorAPI::waitForBarrier("DMT:WriteCkpt");
+  CoordinatorAPI::waitForBarrier("DMTCP::WRITE_CKPT");
 
 
   /* Now that temp checkpoint file is complete, rename it over old permanent

@@ -9,6 +9,7 @@
 #include "util.h"
 
 static const char *firstRestartBarrier = "DMTCP::RESTART";
+static const char *writeCkptBarrier = "DMTCP::WRITE_CKPT";
 
 static dmtcp::PluginManager *pluginManager = NULL;
 JTIMER_NOPRINT(ckptWriteTime);
@@ -102,7 +103,7 @@ PluginManager::registerBarriersWithCoordinator()
       }
     }
   }
-
+  ckptBarriers.push_back(writeCkptBarrier);
   for (int i = pluginManager->pluginInfos.size() - 1; i >= 0; i--) {
     const vector<BarrierInfo *>barriers =
       pluginManager->pluginInfos[i]->resumeBarriers;
